@@ -33,7 +33,9 @@ class AuthMiddleware
         }
 
         $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+            || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+            || (getenv('SESSION_COOKIE_SECURE') === '1');
 
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
@@ -42,7 +44,7 @@ class AuthMiddleware
         session_set_cookie_params([
             'httponly' => true,
             'secure' => $secure,
-            'samesite' => 'Lax',
+            'samesite' => 'Strict',
         ]);
 
         session_start();

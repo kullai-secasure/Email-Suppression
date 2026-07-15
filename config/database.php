@@ -9,7 +9,10 @@ class Database
         $host = getenv('DB_HOST') ?: 'localhost';
         $dbname = getenv('DB_NAME') ?: 'mailpilot';
         $user = getenv('DB_USER') ?: 'mailpilot_app';
-        $pass = getenv('DB_PASS') ?: '';
+        $pass = getenv('DB_PASS');
+        if ($pass === false || $pass === '') {
+            throw new RuntimeException('DB_PASS environment variable is not set');
+        }
         
         $this->connection = new PDO(
             "mysql:host=$host;dbname=$dbname;charset=utf8mb4",

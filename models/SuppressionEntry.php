@@ -22,7 +22,7 @@ class SuppressionEntry
     public function getAll($userId)
     {
         $stmt = $this->db->prepare(
-            'SELECT * FROM suppression_list WHERE user_id = ? ORDER BY created_at DESC'
+            'SELECT id, email, reason, user_id, created_at FROM suppression_list WHERE user_id = ? ORDER BY created_at DESC'
         );
         $stmt->execute([$userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

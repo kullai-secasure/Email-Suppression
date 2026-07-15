@@ -69,15 +69,20 @@ class SuppressionController
 
     private function validateCsrfToken($token)
     {
-        return is_string($token)
+        $valid = is_string($token)
             && !empty($_SESSION['csrf_token'])
             && hash_equals($_SESSION['csrf_token'], $token);
+        if ($valid) {
+            unset($_SESSION['csrf_token']);
+        }
+        return $valid;
     }
 
     private function sanitizeCsvField($value)
     {
         $value = (string) $value;
-        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+        $firstChar = mb_substr($value, 0, 1, 'UTF-8');
+        if ($firstChar !== '' && in_array($firstChar, ['=', '+', '-', '@', "\t", "\r"], true)) {
             $value = "'" . $value;
         }
         return $value;

@@ -22,6 +22,7 @@ class SuppressionImportService
         $allowedPrefix = $allowedDir . DIRECTORY_SEPARATOR;
 
         $candidate = $allowedPrefix . $basename;
+        clearstatcache(true, $candidate);
         if (is_link($candidate)) {
             throw new InvalidArgumentException('Invalid file path');
         }
@@ -31,14 +32,31 @@ class SuppressionImportService
             throw new InvalidArgumentException('Invalid file path');
         }
 
-        if (!is_file($fullPath)) {
+        $handle = fopen($fullPath, 'rb');
+        if ($handle === false) {
             throw new InvalidArgumentException('File not found');
         }
 
-        $lines = file($fullPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if ($lines === false) {
-            throw new Exception('Failed to read suppression list');
+        $descriptorStat = fstat($handle);
+        clearstatcache(true, $fullPath);
+        $linkStat = lstat($fullPath);
+        if ($linkStat === false
+            || ($descriptorStat['mode'] & 0170000) !== 0100000
+            || $descriptorStat['ino'] !== $linkStat['ino']
+            || $descriptorStat['dev'] !== $linkStat['dev']) {
+            fclose($handle);
+            throw new InvalidArgumentException('Invalid file path');
         }
+
+        $lines = [];
+        while (($line = fgets($handle)) !== false) {
+            $line = rtrim($line, "\r\n");
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+        fclose($handle);
+
         return $this->parseAndStore($lines);
     }
 
@@ -48,11 +66,19 @@ class SuppressionImportService
         foreach ($lines as $line) {
             $data = str_getcsv($line);
             if (filter_var($data[0], FILTER_VALIDATE_EMAIL)) {
-                $this->model->addEntry($data[0], $data[1] ?? 'imported');
+                $this->model->addEntry($data[0], $this->sanitizeReason($data[1] ?? 'imported'));
                 $imported++;
             }
         }
         return $imported;
+    }
+
+    private function sanitizeReason($reason)
+    {
+        $reason = strip_tags((string) $reason);
+        $reason = preg_replace('/[\x00-\x1F\x7F]/', '', $reason);
+        $reason = trim(mb_substr($reason, 0, 255, 'UTF-8'));
+        return $reason === '' ? 'imported' : $reason;
     }
 }
 ?>
