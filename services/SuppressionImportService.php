@@ -13,18 +13,24 @@ class SuppressionImportService
 
     public function importFromSource($source)
     {
-        // Validate filename contains no path traversal
         $basename = basename($source);
 
-        // Construct full path within allowed directory
-        $fullPath = realpath($this->uploadDirectory . $basename);
+        $allowedDir = realpath($this->uploadDirectory);
+        if ($allowedDir === false) {
+            throw new InvalidArgumentException('Invalid file path');
+        }
+        $allowedPrefix = $allowedDir . DIRECTORY_SEPARATOR;
 
-        // Verify the resolved path is within allowed directory
-        if ($fullPath === false || strpos($fullPath, realpath($this->uploadDirectory)) !== 0) {
+        $candidate = $allowedPrefix . $basename;
+        if (is_link($candidate)) {
             throw new InvalidArgumentException('Invalid file path');
         }
 
-        // Verify it's a regular file, not a URL
+        $fullPath = realpath($candidate);
+        if ($fullPath === false || strncmp($fullPath, $allowedPrefix, strlen($allowedPrefix)) !== 0) {
+            throw new InvalidArgumentException('Invalid file path');
+        }
+
         if (!is_file($fullPath)) {
             throw new InvalidArgumentException('File not found');
         }
