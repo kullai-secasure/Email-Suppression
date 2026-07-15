@@ -23,7 +23,7 @@ class SuppressionController
         $service = new SuppressionImportService();
 
         try {
-            $count = $service->importFromSource($source);
+            $count = $service->importFromSource($source, $_SESSION['user_id']);
             $_SESSION['message'] = "Successfully imported $count entries";
         } catch (Exception $e) {
             $_SESSION['error'] = 'Import failed';

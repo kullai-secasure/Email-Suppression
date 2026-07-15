@@ -48,6 +48,11 @@ class AuthMiddleware
         ]);
 
         session_start();
+
+        if (empty($_SESSION['_initiated'])) {
+            session_regenerate_id(true);
+            $_SESSION['_initiated'] = true;
+        }
     }
 }
 ?>

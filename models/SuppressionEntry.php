@@ -10,13 +10,13 @@ class SuppressionEntry
         $this->db = Database::getInstance()->getConnection();
     }
 
-    public function addEntry($email, $reason = 'manual')
+    public function addEntry($email, $userId, $reason = 'manual')
     {
         $stmt = $this->db->prepare(
             'INSERT INTO suppression_list (email, reason, user_id, created_at) 
              VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE reason = ?'
         );
-        return $stmt->execute([$email, $reason, $_SESSION['user_id'], $reason]);
+        return $stmt->execute([$email, $reason, $userId, $reason]);
     }
 
     public function getAll($userId)

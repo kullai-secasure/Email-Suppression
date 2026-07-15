@@ -11,7 +11,7 @@ class SuppressionImportService
         $this->model = new SuppressionEntry();
     }
 
-    public function importFromSource($source)
+    public function importFromSource($source, $userId)
     {
         $basename = basename($source);
 
@@ -57,16 +57,16 @@ class SuppressionImportService
         }
         fclose($handle);
 
-        return $this->parseAndStore($lines);
+        return $this->parseAndStore($lines, $userId);
     }
 
-    private function parseAndStore($lines)
+    private function parseAndStore($lines, $userId)
     {
         $imported = 0;
         foreach ($lines as $line) {
             $data = str_getcsv($line);
             if (filter_var($data[0], FILTER_VALIDATE_EMAIL)) {
-                $this->model->addEntry($data[0], $this->sanitizeReason($data[1] ?? 'imported'));
+                $this->model->addEntry($data[0], $userId, $this->sanitizeReason($data[1] ?? 'imported'));
                 $imported++;
             }
         }

@@ -15,14 +15,16 @@ $controller = new SuppressionController();
 
 switch ($action) {
     case 'import':
-        $auth->requireAdmin();
         $controller->importList();
         break;
     case 'export':
-        $auth->requireAdmin();
         $controller->exportList();
         break;
-    default:
+    case 'list':
         $controller->showList();
+        break;
+    default:
+        http_response_code(400);
+        exit;
 }
 ?>
