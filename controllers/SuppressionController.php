@@ -7,21 +7,30 @@ class SuppressionController
     public function importList()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $csrfToken = $this->issueCsrfToken();
             include 'views/import_form.php';
             return;
         }
 
-        $source = $_REQUEST['source'];
+        if (!$this->validateCsrfToken($_POST['csrf_token'] ?? '')) {
+            http_response_code(400);
+            $_SESSION['error'] = 'Invalid request token';
+            header('Location: ?action=list');
+            exit;
+        }
+
+        $source = $_POST['source'] ?? '';
         $service = new SuppressionImportService();
-        
+
         try {
             $count = $service->importFromSource($source);
             $_SESSION['message'] = "Successfully imported $count entries";
         } catch (Exception $e) {
-            $_SESSION['error'] = 'Import failed: ' . $e->getMessage();
+            $_SESSION['error'] = 'Import failed';
         }
-        
+
         header('Location: ?action=list');
+        exit;
     }
 
     public function showList()
@@ -35,13 +44,43 @@ class SuppressionController
     {
         $model = new SuppressionEntry();
         $entries = $model->getAll($_SESSION['user_id']);
-        
-        header('Content-Type: text/csv');
+
+        header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="suppression_list.csv"');
-        
+        header('X-Content-Type-Options: nosniff');
+
+        $output = fopen('php://output', 'w');
         foreach ($entries as $entry) {
-            echo $entry['email'] . ',' . $entry['reason'] . "\n";
+            fputcsv($output, [
+                $this->sanitizeCsvField($entry['email']),
+                $this->sanitizeCsvField($entry['reason']),
+            ]);
         }
+        fclose($output);
+    }
+
+    private function issueCsrfToken()
+    {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    private function validateCsrfToken($token)
+    {
+        return is_string($token)
+            && !empty($_SESSION['csrf_token'])
+            && hash_equals($_SESSION['csrf_token'], $token);
+    }
+
+    private function sanitizeCsvField($value)
+    {
+        $value = (string) $value;
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            $value = "'" . $value;
+        }
+        return $value;
     }
 }
 ?>

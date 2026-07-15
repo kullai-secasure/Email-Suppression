@@ -14,9 +14,12 @@ class Database
         $this->connection = new PDO(
             "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
             $user,
-            $pass
+            $pass,
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]
         );
-        $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
     public static function getInstance()
