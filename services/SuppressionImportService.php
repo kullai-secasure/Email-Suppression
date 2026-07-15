@@ -4,6 +4,7 @@ require_once 'models/SuppressionEntry.php';
 class SuppressionImportService
 {
     private $model;
+    private $uploadDirectory = '/var/www/uploads/suppression/';
 
     public function __construct()
     {
@@ -12,7 +13,23 @@ class SuppressionImportService
 
     public function importFromSource($source)
     {
-        $lines = file($source, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        // Validate filename contains no path traversal
+        $basename = basename($source);
+
+        // Construct full path within allowed directory
+        $fullPath = realpath($this->uploadDirectory . $basename);
+
+        // Verify the resolved path is within allowed directory
+        if ($fullPath === false || strpos($fullPath, realpath($this->uploadDirectory)) !== 0) {
+            throw new InvalidArgumentException('Invalid file path');
+        }
+
+        // Verify it's a regular file, not a URL
+        if (!is_file($fullPath)) {
+            throw new InvalidArgumentException('File not found');
+        }
+
+        $lines = file($fullPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         if ($lines === false) {
             throw new Exception('Failed to read suppression list');
         }
